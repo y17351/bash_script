@@ -1,0 +1,28 @@
+#!/bin/bash
+
+function get_addr() {
+  echo $(ip -4 -o addr show enp0s3 | cut -d\  -f7) | cut -d/ -f1
+}
+
+function get_prefix() {
+  echo $(ip -4 -o addr show enp0s3 | cut -d\  -f7) | cut -d/ -f2
+}
+
+function get_mask() {
+  local mask=($(echo $(printf 1"%.s" $(seq $(get_prefix)))\
+                     $(printf 0"%.s" $(seq $((32 - $(get_prefix)))))\
+                     | fold -s8))
+  for i in ${!mask[@]}; do  
+    mask[$i]=$(echo "obase=10; ibase=2;" ${mask[$i]} | bc)
+  done
+  echo ${mask[@]} | tr " " "."
+}
+
+function get_netaddr() {
+  local addr_arr=($(get_addr |tr "." " "))
+  local mask_arr=($(get_mask |tr "." " "))
+  for i in {0..3}; do
+    net_arr[$i]=$((${addr_arr[$i]} & ${mask_arr[$i]}))
+  done
+  echo ${net_arr[@]} | tr " " "."
+}
